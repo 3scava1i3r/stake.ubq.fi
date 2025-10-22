@@ -127,7 +127,21 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     refreshData();
   };
 
+  const isFacetMissing = (err: unknown) => {
+    const msg =
+      err instanceof BaseError
+        ? err.shortMessage || err.message
+        : err instanceof Error
+        ? err.message
+        : String(err ?? "");
+    return /diamond:\s*function does not exist|selector is too short|facet\s+not\s+present/i.test(msg);
+  };
+
   const onError = (error: unknown) => {
+    if (isFacetMissing(error)) {
+      setErrorMessage("Staking not deployed on this chain");
+      return;
+    }
     if (error instanceof BaseError) {
       const shortMessage = error.shortMessage || error.message;
       setErrorMessage(shortMessage);
@@ -256,8 +270,10 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
 
     let friendlyMessage = "Staking data is currently unavailable. Please refresh or try again later.";
     const anyMsg = Object.values(rawErrors).find(Boolean) as string | undefined;
-    if (anyMsg && /Function does not exist|execution reverted/i.test(anyMsg)) {
-      friendlyMessage = "Staking is temporarily unavailable while contracts update. Please try again shortly.";
+    if (anyMsg && /diamond:\s*function does not exist|selector is too short|facet\s+not\s+present/i.test(anyMsg)) {
+      friendlyMessage = "Staking not deployed on this chain";
+    } else if (anyMsg && /Function does not exist|execution reverted/i.test(anyMsg)) {
+      friendlyMessage = "Staking call failed. Please check network and try again.";
     }
 
     if (import.meta.env.DEV) {
