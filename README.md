@@ -1,4 +1,4 @@
-# Ubiquity Stake (`stake.ubq.fi`)
+# Ubiquity Staking (`stake.ubq.fi`)
 
 Staking frontend for the Ubiquity protocol. Built with React, Vite, wagmi, viem, and TanStack Query. Provides a minimal and fast interface to stake LP tokens, manage allowances, view pool stats, and claim rewards.
 

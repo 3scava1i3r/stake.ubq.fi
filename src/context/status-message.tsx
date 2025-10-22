@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer } from "react";
+import { createContext, useCallback, useContext, useMemo, useReducer } from "react";
 
 type StatusMessage = {
   successMessage: string | null;
@@ -33,17 +33,23 @@ export function StatusMessageProvider({ children }: { children: React.ReactNode 
     errorMessage: null,
   });
 
-  const setSuccessMessage = (msg: string | null) => {
+  // Stable callbacks to avoid effect loops in consumers
+  const setSuccessMessage = useCallback((msg: string | null) => {
     dispatch({ type: "setSuccess", message: msg });
-  };
-  const setErrorMessage = (msg: string | null) => {
+  }, []);
+  const setErrorMessage = useCallback((msg: string | null) => {
     dispatch({ type: "setError", message: msg });
-  };
-  const clearMessages = () => {
+  }, []);
+  const clearMessages = useCallback(() => {
     dispatch({ type: "clear" });
-  };
+  }, []);
 
-  return <StatusMessageContext value={{ ...statusMessage, setSuccessMessage, setErrorMessage, clearMessages }}>{children}</StatusMessageContext>;
+  const value = useMemo(
+    () => ({ ...statusMessage, setSuccessMessage, setErrorMessage, clearMessages }),
+    [statusMessage, setSuccessMessage, setErrorMessage, clearMessages]
+  );
+
+  return <StatusMessageContext value={value}>{children}</StatusMessageContext>;
 }
 
 function statusMessageReducer(_: StatusMessage, action: StatusMessageAction): StatusMessage {

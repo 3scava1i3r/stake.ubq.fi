@@ -41,7 +41,7 @@ const supportedChains: [Chain, ...Chain[]] = isLocalNode
   : [mainnet];
 
 const metadata = {
-  name: "Ubiquity Stake",
+  name: "Ubiquity Staking",
   description: "Staking frontend for the Ubiquity protocol",
   url: typeof window !== "undefined" ? window.location.origin : "https://stake.ubq.fi",
   icons: [
@@ -96,7 +96,7 @@ export function initializeAppKit() {
   try {
     // Create WagmiAdapter
     wagmiAdapter = new WagmiAdapter({
-      networks: supportedChains as any,
+      networks: supportedChains,
       projectId,
       ssr: false,
     });
@@ -104,7 +104,7 @@ export function initializeAppKit() {
     // Create AppKit with lazy loading
     appKit = createAppKit({
       adapters: [wagmiAdapter],
-      networks: supportedChains as any,
+      networks: supportedChains,
       projectId,
       metadata,
       features: {

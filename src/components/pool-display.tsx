@@ -3,6 +3,7 @@ import { usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import erc20Abi from "../abis/erc20.ts";
 import { stakingContract } from "../constants/contracts.ts";
 import { BaseError, formatUnits, parseUnits } from "viem";
+import { mainnet } from "viem/chains";
 import { useErc20Token } from "../hooks/erc20Token.ts";
 import { useState } from "react";
 import { waitForTransactionReceipt } from "viem/actions";
@@ -29,12 +30,14 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
 
   const stakingSettings = useReadContract({
     ...stakingContract,
+    chainId: mainnet.id,
     functionName: "getStakingSettings",
     args: [],
   });
   
   const poolInfo = useReadContract({
     ...stakingContract,
+    chainId: mainnet.id,
     functionName: "getStakingPoolInfo",
     args: [poolId],
   });
@@ -46,6 +49,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
 
   const userInfo = useReadContract({
     ...stakingContract,
+    chainId: mainnet.id,
     functionName: "getStakingUserInfo",
     args: [poolId, address ?? "0x0"],
     query: {
@@ -55,6 +59,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
   
   const pendingRewards = useReadContract({
     ...stakingContract,
+    chainId: mainnet.id,
     functionName: "getPendingStakingRewards",
     args: [poolId, address ?? "0x0"],
     query: {
@@ -65,6 +70,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
   const allowance = useReadContract({
     abi: erc20Abi,
     address: lpTokenAddress,
+    chainId: mainnet.id,
     functionName: "allowance",
     args: [address ?? "0x0", stakingContract.address],
     query: {
@@ -75,6 +81,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
   const balance = useReadContract({
     abi: erc20Abi,
     address: lpTokenAddress,
+    chainId: mainnet.id,
     functionName: "balanceOf",
     args: [address ?? "0x0"],
     query: {
@@ -212,6 +219,24 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     poolInfo.error ||
     (isConnected && (pendingRewards.error || userInfo.error || allowance.error || balance.error))
   ) {
+    if (import.meta.env.DEV) {
+      // Helpful diagnostics in dev only
+      console.error(
+        "Pool data load error",
+        JSON.stringify(
+          {
+            stakingSettings: stakingSettings.error?.message,
+            poolInfo: poolInfo.error?.message,
+            userInfo: userInfo.error?.message,
+            pendingRewards: pendingRewards.error?.message,
+            allowance: allowance.error?.message,
+            balance: balance.error?.message,
+          },
+          null,
+          2
+        )
+      );
+    }
     return (
       <div className="pool-container">
         <div style={{ padding: "20px", color: "#ff6666" }}>

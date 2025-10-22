@@ -1,4 +1,5 @@
 import { erc20Abi } from "viem";
+import { mainnet } from "viem/chains";
 import { useReadContracts } from "wagmi";
 
 export function useErc20Token(tokenAddress: `0x${string}` | undefined) {
@@ -7,16 +8,19 @@ export function useErc20Token(tokenAddress: `0x${string}` | undefined) {
       {
         abi: erc20Abi,
         address: tokenAddress,
+        chainId: mainnet.id,
         functionName: "name",
       },
       {
         abi: erc20Abi,
         address: tokenAddress,
+        chainId: mainnet.id,
         functionName: "symbol",
       },
       {
         abi: erc20Abi,
         address: tokenAddress,
+        chainId: mainnet.id,
         functionName: "decimals",
       },
     ],
