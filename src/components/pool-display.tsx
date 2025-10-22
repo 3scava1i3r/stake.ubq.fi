@@ -28,11 +28,23 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
   const [isUnstaking, setIsUnstaking] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
+  const poolsLength = useReadContract({
+    ...stakingContract,
+    chainId: mainnet.id,
+    functionName: "getStakingPoolsLength",
+    args: [],
+  });
+
+  const hasPool = poolsLength.data !== undefined && poolsLength.data > poolId;
+
   const stakingSettings = useReadContract({
     ...stakingContract,
     chainId: mainnet.id,
     functionName: "getStakingSettings",
     args: [],
+    query: {
+      enabled: poolsLength.data !== undefined,
+    },
   });
   
   const poolInfo = useReadContract({
@@ -40,6 +52,9 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     chainId: mainnet.id,
     functionName: "getStakingPoolInfo",
     args: [poolId],
+    query: {
+      enabled: hasPool,
+    },
   });
   
   const lpTokenAddress = poolInfo.data?.lpToken;
@@ -53,7 +68,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     functionName: "getStakingUserInfo",
     args: [poolId, address ?? "0x0"],
     query: {
-      enabled: isConnected && !!address,
+      enabled: hasPool && isConnected && !!address,
     },
   });
   
@@ -63,7 +78,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     functionName: "getPendingStakingRewards",
     args: [poolId, address ?? "0x0"],
     query: {
-      enabled: isConnected && !!address,
+      enabled: hasPool && isConnected && !!address,
     },
   });
 
@@ -74,7 +89,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     functionName: "allowance",
     args: [address ?? "0x0", stakingContract.address],
     query: {
-      enabled: isConnected && !!address && !!lpTokenAddress,
+      enabled: hasPool && isConnected && !!address && !!lpTokenAddress,
     },
   });
   
@@ -85,7 +100,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     functionName: "balanceOf",
     args: [address ?? "0x0"],
     query: {
-      enabled: isConnected && !!address && !!lpTokenAddress,
+      enabled: hasPool && isConnected && !!address && !!lpTokenAddress,
     },
   });
 
@@ -211,43 +226,54 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     balance.refetch();
   };
 
+  // No pools available
+  if (poolsLength.data === 0n) {
+    return (
+      <div className="pool-container">
+        <div className="pool-message">No staking pools are currently active.</div>
+      </div>
+    );
+  }
+
   // Error handling
   if (
+    poolsLength.error ||
     stakingSettings.error ||
     lpTokenInfo.error ||
     rewardTokenInfo.error ||
     poolInfo.error ||
     (isConnected && (pendingRewards.error || userInfo.error || allowance.error || balance.error))
   ) {
+    const rawErrors = {
+      poolsLength: poolsLength.error?.message,
+      stakingSettings: stakingSettings.error?.message,
+      poolInfo: poolInfo.error?.message,
+      userInfo: userInfo.error?.message,
+      pendingRewards: pendingRewards.error?.message,
+      allowance: allowance.error?.message,
+      balance: balance.error?.message,
+    };
+
+    let friendlyMessage = "Staking data is currently unavailable. Please refresh or try again later.";
+    const anyMsg = Object.values(rawErrors).find(Boolean) as string | undefined;
+    if (anyMsg && /Function does not exist|execution reverted/i.test(anyMsg)) {
+      friendlyMessage = "Staking is temporarily unavailable while contracts update. Please try again shortly.";
+    }
+
     if (import.meta.env.DEV) {
       // Helpful diagnostics in dev only
-      console.error(
-        "Pool data load error",
-        JSON.stringify(
-          {
-            stakingSettings: stakingSettings.error?.message,
-            poolInfo: poolInfo.error?.message,
-            userInfo: userInfo.error?.message,
-            pendingRewards: pendingRewards.error?.message,
-            allowance: allowance.error?.message,
-            balance: balance.error?.message,
-          },
-          null,
-          2
-        )
-      );
+      console.error("Pool data load error", JSON.stringify(rawErrors, null, 2));
     }
     return (
       <div className="pool-container">
-        <div style={{ padding: "20px", color: "#ff6666" }}>
-          Failed to load pool data. Please check your connection and try again.
-        </div>
+        <div className="pool-error-message">{friendlyMessage}</div>
       </div>
     );
   }
 
   // Loading state
   if (
+    poolsLength.data === undefined ||
     stakingSettings.data === undefined ||
     lpTokenInfo.data === undefined ||
     rewardTokenInfo.data === undefined ||

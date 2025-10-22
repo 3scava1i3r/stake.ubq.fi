@@ -63,13 +63,12 @@ export function ConnectWalletButton() {
     const truncatedAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
 
     return (
-      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      <div className="wallet-actions">
         {isUnsupportedChain && (
           <button 
-            className="button-with-icon" 
+            className="button-with-icon button-warning" 
             onClick={handleNetworkSwitch}
             disabled={isSwitchingNetwork}
-            style={{ backgroundColor: "#ff444420" }}
           >
             {ICONS.WARNING}
             <span>{isSwitchingNetwork ? "Switching..." : "Switch Network"}</span>

@@ -50,7 +50,7 @@ export function DashboardPage() {
 
       {isUnsupportedChain ? (
         <div className="pool-container">
-          <div style={{ padding: "20px" }}>Switch to one of the supported chains: {supportedChains.map((chain) => chain.name).join(", ")}</div>
+          <div className="pool-message">Switch to one of the supported chains: {supportedChains.map((chain) => chain.name).join(", ")}</div>
         </div>
       ) : (
         <PoolDisplay />

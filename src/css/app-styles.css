@@ -168,6 +168,26 @@ button > .spinner.button-spinner {
   fill: currentColor;
 }
 
+/* Inline-style replacements (migrated from React components) */
+.wallet-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-warning {
+  background-color: #ff444420;
+}
+
+.pool-message {
+  padding: 20px;
+}
+
+.pool-error-message {
+  padding: 20px;
+  color: #ff6666;
+}
+
 h1 > span {
   color: #bfbfbf;
   font-size: 13.3333px;
