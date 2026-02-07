@@ -9,6 +9,8 @@ import App from "./App.tsx";
 import { grid } from "./the-grid";
 import { isLocalNode, RPC_URL } from "./constants/config";
 import { StatusMessageProvider } from "./context/status-message.tsx";
+import { ToastProvider, ToastContainer } from "./ui/toast";
+import "./css/toast.css";
 
 // Configure wagmi
 const supportedChains: [Chain, ...Chain[]] = isLocalNode ? [mainnet, anvil] : [mainnet];
@@ -44,9 +46,12 @@ createRoot(rootElement).render(
   <StrictMode>
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <StatusMessageProvider>
-          <App />
-        </StatusMessageProvider>
+        <ToastProvider>
+          <StatusMessageProvider>
+            <App />
+            <ToastContainer />
+          </StatusMessageProvider>
+        </ToastProvider>
       </QueryClientProvider>
     </WagmiProvider>
   </StrictMode>

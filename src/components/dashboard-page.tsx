@@ -3,6 +3,7 @@ import { ICONS } from "./iconography.tsx";
 import { PoolDisplay } from "./pool-display.tsx";
 import { BaseError } from "viem";
 import { useStatusMessage } from "../context/status-message.tsx";
+import { useToast } from "../ui/toast";
 
 const LogoSpan = () => <span id="header-logo-wrapper">{ICONS.DAO_LOGO}</span>;
 
@@ -13,8 +14,9 @@ export function DashboardPage() {
   const { disconnect } = useDisconnect();
 
   const { successMessage, errorMessage, setErrorMessage, clearMessages } = useStatusMessage();
+  const { toast } = useToast();
 
-  const isWalletInstalled = typeof window !== "undefined" && !!window.ethereum;
+  const isWalletInstalled = typeof window !== "undefined" && !!(window as { ethereum?: unknown }).ethereum;
 
   return (
     <>
@@ -47,11 +49,9 @@ export function DashboardPage() {
                 { connector: injected() },
                 {
                   onError: (error) => {
-                    if (error instanceof BaseError) {
-                      setErrorMessage(error.shortMessage);
-                    } else {
-                      setErrorMessage(error.message);
-                    }
+                    const message = error instanceof BaseError ? error.shortMessage : error.message;
+                    toast(message, "error", 0);
+                    setErrorMessage(message);
                   },
                   onSuccess: () => clearMessages(),
                 }

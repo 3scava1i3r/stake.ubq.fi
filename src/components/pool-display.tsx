@@ -6,6 +6,7 @@ import { useErc20Token } from "../hooks/erc20Token.ts";
 import { useState } from "react";
 import { waitForTransactionReceipt } from "viem/actions";
 import { useStatusMessage } from "../context/status-message.tsx";
+import { useToast } from "../ui/toast";
 import { Button } from "./button.tsx";
 
 interface PoolDisplayProps {
@@ -18,6 +19,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
   const publicClient = usePublicClient();
 
   const { setErrorMessage, setSuccessMessage, clearMessages } = useStatusMessage();
+  const { toast } = useToast();
 
   const [stakeAmount, setStakeAmount] = useState("");
   const [unstakeAmount, setUnstakeAmount] = useState("");
@@ -82,24 +84,31 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     try {
       const receipt = await waitForTransactionReceipt(publicClient, { hash });
       if (receipt.status === "success") {
+        toast("Transaction confirmed", "success");
         setSuccessMessage("Transaction confirmed");
       } else {
+        toast("Transaction reverted", "error", 0);
         setErrorMessage("Transaction reverted");
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Transaction failed");
+      const message = error instanceof Error ? error.message : "Transaction failed";
+      toast(message, "error", 0);
+      setErrorMessage(message);
     }
     refreshData();
   };
 
   const onError = (error: unknown) => {
+    let message: string;
     if (error instanceof BaseError) {
-      setErrorMessage(error.shortMessage);
+      message = error.shortMessage;
     } else if (error instanceof Error) {
-      setErrorMessage(error.message);
+      message = error.message;
     } else {
-      setErrorMessage("An unknown error occurred");
+      message = "An unknown error occurred";
     }
+    toast(message, "error", 0);
+    setErrorMessage(message);
   };
 
   const claim = () => {
