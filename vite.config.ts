@@ -15,6 +15,12 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       output: {
+        /**
+         * Custom chunking function for vendor splitting.
+         * Separates heavy dependencies into distinct chunks to reduce initial bundle size.
+         * @param id - The module ID being evaluated
+         * @returns {string | undefined} Chunk name if module should be separated, undefined otherwise
+         */
         manualChunks(id) {
           // Separate React + React DOM
           if (id.includes("react") && (id.includes("node_modules/react") || id.includes("node_modules/react-dom"))) {

@@ -5,14 +5,26 @@ import { PoolDisplay } from "./pool-display.tsx";
 import { supportedChains } from "../wallet/config.ts";
 import { useStatusMessageState } from "../context/status-message.tsx";
 
-// Lazy load wallet connector UI to reduce initial bundle size
+/**
+ * Lazy-loaded wallet connector button component.
+ * Dynamically imported to reduce initial bundle size.
+ * Falls back to skeleton while loading.
+ */
 const ConnectWalletButton = lazy(() => import("./connect-wallet.tsx").then(mod => ({ default: mod.ConnectWalletButton })));
 
-// Loading skeleton for wallet button
+/**
+ * Loading skeleton placeholder for the wallet button.
+ * Displayed while the wallet connector is being lazy-loaded.
+ * @returns {JSX.Element} Skeleton div with placeholder styling
+ */
 const WalletButtonSkeleton = () => (
   <div className="wallet-button skeleton" style={{ width: "180px", height: "40px" }} />
 );
 
+/**
+ * Logo span component displaying the DAO logo.
+ * @returns {JSX.Element} Span containing the DAO logo icon
+ */
 const LogoSpan = () => <span id="header-logo-wrapper">{ICONS.DAO_LOGO}</span>;
 
 export function DashboardPage() {
