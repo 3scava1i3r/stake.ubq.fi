@@ -1,9 +1,18 @@
+import { lazy, Suspense } from "react";
+import type { ComponentType } from "react";
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
 import { ICONS } from "./iconography.tsx";
 import { PoolDisplay } from "./pool-display.tsx";
-import { ConnectWalletButton } from "./connect-wallet.tsx";
 import { supportedChains } from "../wallet/config.ts";
 import { useStatusMessageState } from "../context/status-message.tsx";
+
+// Lazy load wallet connector UI to reduce initial bundle size
+const ConnectWalletButton = lazy(() => import("./connect-wallet.tsx") as unknown as Promise<{ default: ComponentType<unknown> }>);
+
+// Loading skeleton for wallet button
+const WalletButtonSkeleton = () => (
+  <div className="wallet-button skeleton" style={{ width: "180px", height: "40px" }} />
+);
 
 const LogoSpan = () => <span id="header-logo-wrapper">{ICONS.DAO_LOGO}</span>;
 
@@ -26,7 +35,9 @@ export function DashboardPage() {
           </h1>
         </div>
 
-        <ConnectWalletButton />
+        <Suspense fallback={<WalletButtonSkeleton />}>
+          <ConnectWalletButton />
+        </Suspense>
       </section>
 
       {/* Status Displays */}
