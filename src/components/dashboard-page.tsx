@@ -7,7 +7,7 @@ import { supportedChains } from "../wallet/config.ts";
 import { useStatusMessageState } from "../context/status-message.tsx";
 
 // Lazy load wallet connector UI to reduce initial bundle size
-const ConnectWalletButton = lazy(() => import("./connect-wallet.tsx") as unknown as Promise<{ default: ComponentType<unknown> }>);
+const ConnectWalletButton = lazy(() => import("./connect-wallet.tsx").then(mod => ({ default: mod.ConnectWalletButton })));
 
 // Loading skeleton for wallet button
 const WalletButtonSkeleton = () => (

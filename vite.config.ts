@@ -15,13 +15,19 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks(id) {
           // Separate React + React DOM
-          "vendor-react": ["react", "react-dom"],
+          if (id.includes("react") && (id.includes("node_modules/react") || id.includes("node_modules/react-dom"))) {
+            return "vendor-react";
+          }
           // Separate TanStack Query
-          "vendor-query": ["@tanstack/react-query"],
-          // Separate wallet libraries (wagmi + viem + appkit)
-          "vendor-wallet": ["wagmi", "viem", "@reown/appkit", "@reown/appkit-adapter-wagmi"],
+          if (id.includes("@tanstack/react-query")) {
+            return "vendor-query";
+          }
+          // Separate wallet libraries
+          if (id.includes("node_modules/wagmi") || id.includes("node_modules/viem") || id.includes("@reown/appkit")) {
+            return "vendor-wallet";
+          }
         },
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",

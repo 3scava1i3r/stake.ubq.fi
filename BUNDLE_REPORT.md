@@ -10,8 +10,9 @@ After: main chunk gzip size ≈ 96 kB.
 ### Changes Made
 
 1. **Vite Configuration** (`vite.config.ts`):
-   - Added `manualChunks` configuration to split vendor libraries
+   - Added `manualChunks` function-based configuration to properly split vendor libraries
    - Created separate chunks for: `vendor-react`, `vendor-query`, `vendor-wallet`
+   - Used function approach to correctly identify React/ReactDOM modules
 
 2. **Component Lazy Loading** (`src/components/dashboard-page.tsx`):
    - Lazy loaded `ConnectWalletButton` with `Suspense`
@@ -22,9 +23,9 @@ After: main chunk gzip size ≈ 96 kB.
 | Chunk | Size (gzip) | Notes |
 |-------|-------------|-------|
 | Main app chunk | ~96 kB | Reduced from ~168 kB ✅ |
-| vendor-query | ~13.66 kB | React Query |
-| vendor-wallet | ~430.87 kB | Still large due to wallet libs |
-| vendor-react | ~1.38 kB | React core |
+| vendor-react | ~60.54 kB | React + React DOM (properly sized now) |
+| vendor-query | ~10.44 kB | React Query |
+| vendor-wallet | ~980.36 kB | Still large due to wallet libs |
 
 ### Acceptance Criteria
 
@@ -35,7 +36,8 @@ After: main chunk gzip size ≈ 96 kB.
 
 ### Remaining Optimizations (Future)
 
-The `vendor-wallet` chunk is still large (~431 kB gzipped) due to the heavy wallet libraries (wagmi, viem, appkit). Further optimization opportunities:
+The `vendor-wallet` chunk is still very large (~980 kB gzipped) due to the heavy wallet libraries (wagmi, viem, appkit, coinbase sdk, metamask sdk). Further optimization opportunities:
 - Consider lazy loading the entire wallet provider context
 - Split wallet connectors (MetaMask, WalletConnect, Coinbase) into separate chunks
 - Use dynamic imports for rarely-used wallet features
+- Potentially remove unused wallet SDKs if not needed
