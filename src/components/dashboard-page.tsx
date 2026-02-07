@@ -1,5 +1,4 @@
 import { lazy, Suspense } from "react";
-import type { ComponentType } from "react";
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
 import { ICONS } from "./iconography.tsx";
 import { PoolDisplay } from "./pool-display.tsx";
