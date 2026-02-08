@@ -21,7 +21,12 @@ export interface ToastConfig {
 
 export interface ToastContextValue {
   toasts: ReadonlyArray<Toast>;
-  toast: (message: string, variant?: ToastVariant, duration?: number) => string;
+  toast: (message: string, variant?: ToastVariant, duration?: number) => string | null;
   dismiss: (id: string) => void;
   clear: () => void;
 }
+
+export type ToastAction =
+  | { type: "ADD"; payload: Toast }
+  | { type: "DISMISS"; payload: string }
+  | { type: "CLEAR" };

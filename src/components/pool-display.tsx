@@ -1,12 +1,13 @@
 import { useAppKitAccount } from "@reown/appkit/react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useWriteContract, usePublicClient } from "wagmi";
+import { parseUnits, BaseError } from "viem";
 import { stakingContract } from "../constants/contracts";
+import erc20Abi from "../abis/erc20";
 import { useErc20Token } from "../hooks/erc20Token";
 import { useState } from "react";
 import { waitForTransactionReceipt } from "viem/actions";
-import { useStatusMessage } from "../context/status-message.tsx";
+import { useStatusMessageState, useStatusMessageDispatch } from "../context/status-message.tsx";
 import { useToast } from "../ui/toast";
-import { Button } from "./button.tsx";
 import { Button } from "./button";
 import { useStaking } from "../hooks/useStaking";
 import { safeFormatUnits, safeParseUnits, calculatePoolRewardPerDay, calculateUserPoolShare, calculateUserRewardPerDay } from "../utils/pool";
@@ -43,12 +44,16 @@ const WRITE_ACTION = {
   NONE: "none",
 } as const;
 
-const { setErrorMessage, setSuccessMessage, clearMessages } = useStatusMessage();
-const { toast } = useToast();
 type WriteAction = (typeof WRITE_ACTION)[keyof typeof WRITE_ACTION];
 
 export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
   const { address, isConnected } = useAppKitAccount();
+  const publicClient = usePublicClient();
+  const dispatch = useStatusMessageDispatch();
+  const setErrorMessage = (message: string) => dispatch({ type: "setError", message });
+  const setSuccessMessage = (message: string) => dispatch({ type: "setSuccess", message });
+  const clearMessages = () => dispatch({ type: "clear" });
+  const { toast } = useToast();
   const [stakeAmount, setStakeAmount] = useState("");
   const [unstakeAmount, setUnstakeAmount] = useState("");
   const [currentWriteAction, setCurrentWriteAction] = useState<WriteAction>(WRITE_ACTION.NONE);
@@ -106,7 +111,7 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
       toast(message, "error", 0);
       setErrorMessage(message);
     }
-    refreshData();
+    staking.refetchAll();
   };
 
   const onError = (error: unknown) => {
@@ -122,100 +127,12 @@ export function PoolDisplay({ poolId = 0n }: PoolDisplayProps) {
     setErrorMessage(message);
   };
 
-  const claim = () => {
-    clearMessages();
-    setIsClaiming(true);
-    writeContract(
-      {
-        ...stakingContract,
-        functionName: "unstake",
-        args: [poolId, 0n],
-      },
-      {
-        onSuccess: onSuccess,
-        onError: onError,
-        onSettled: () => {
-          setIsClaiming(false);
-        },
-      }
-    );
-  };
-
-  const stake = () => {
-    if (!lpTokenInfo.data) return;
-    clearMessages();
-    setIsStaking(true);
-    writeContract(
-      {
-        ...stakingContract,
-        functionName: "stake",
-        args: [poolId, parseUnits(stakeAmount, lpTokenInfo.data.decimals)],
-      },
-      {
-        onSuccess: onSuccess,
-        onError: onError,
-        onSettled: () => {
-          setIsStaking(false);
-        },
-      }
-    );
-  };
-
-  const unstake = () => {
-    if (!lpTokenInfo.data) return;
-    clearMessages();
-    setIsUnstaking(true);
-    writeContract(
-      {
-        ...stakingContract,
-        functionName: "unstake",
-        args: [poolId, parseUnits(unstakeAmount, lpTokenInfo.data.decimals)],
-      },
-      {
-        onSuccess: onSuccess,
-        onError: onError,
-        onSettled: () => {
-          setIsUnstaking(false);
-        },
-      }
-    );
-  };
-
-  const approveAllowance = () => {
-    if (!lpTokenAddress || !lpTokenInfo.data) return;
-    clearMessages();
-    setIsApproving(true);
-    writeContract(
-      {
-        abi: erc20Abi,
-        address: lpTokenAddress,
-        functionName: "approve",
-        args: [stakingContract.address, parseUnits(stakeAmount, lpTokenInfo.data.decimals)],
-      },
-      {
-        onSuccess: onSuccess,
-        onError: onError,
-        onSettled: () => {
-          setIsApproving(false);
-        },
-      }
-    );
-  };
-
-  const refreshData = () => {
-    poolInfo.refetch();
-    userInfo.refetch();
-    pendingRewards.refetch();
-    allowance.refetch();
-    balance.refetch();
-  };
-
   if (
     stakingSettings.error ||
     lpTokenInfo.error ||
     rewardTokenInfo.error ||
     poolInfo.error ||
-    (account.isConnected && (pendingRewards.error || userInfo.error || allowance.error || balance.error))
+    (isConnected && (staking.data.pendingRewards?.error || staking.data.userInfo?.error || staking.data.allowance?.error || staking.data.balance?.error))
   ) {
     return <div className="pool-container">Loading failed...</div>;
   }

@@ -27,10 +27,11 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     <div
       className={`toast toast-${toast.variant}`}
       onClick={() => onDismiss(toast.id)}
-      role="alert"
+      role={toast.variant === "error" ? "alert" : "status"}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
           onDismiss(toast.id);
         }
       }}

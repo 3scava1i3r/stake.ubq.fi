@@ -4,137 +4,193 @@
  */
 
 import { describe, it, expect } from "bun:test";
+import { toastReducer } from "../src/ui/toast/ToastProvider";
+import { TOAST_CONFIG } from "../src/ui/toast/constants";
+import type { Toast, ToastVariant } from "../src/ui/toast/types";
 
-// Test the toast reducer logic directly
+// Test state interface matching the reducer
+interface TestToastState {
+  toasts: Toast[];
+  lastToast: { message: string; timestamp: number } | null;
+}
+
 describe("toast reducer logic", () => {
   it("should add a new toast", () => {
-    const initialState = { toasts: [], lastToast: null };
+    const initialState: TestToastState = { toasts: [], lastToast: null };
     const action = {
       type: "ADD" as const,
       payload: {
         id: "test-1",
         message: "Test message",
-        variant: "success" as const,
+        variant: "success" as ToastVariant,
         duration: 5000,
         timestamp: Date.now(),
       },
     };
 
-    // Simulate reducer
-    if (action.type === "ADD") {
-      const newState = {
-        toasts: [...initialState.toasts, action.payload],
-        lastToast: { message: action.payload.message, timestamp: action.payload.timestamp },
-      };
-      expect(newState.toasts).toHaveLength(1);
-      expect(newState.toasts[0].message).toBe("Test message");
-    }
+    const newState = toastReducer(initialState, action);
+
+    expect(newState.toasts).toHaveLength(1);
+    expect(newState.toasts[0].message).toBe("Test message");
+    expect(newState.lastToast?.message).toBe("Test message");
   });
 
   it("should filter toasts by id on dismiss", () => {
-    const state = {
+    const state: TestToastState = {
       toasts: [
-        { id: "1", message: "Toast 1", variant: "info" as const, duration: 5000, timestamp: Date.now() },
-        { id: "2", message: "Toast 2", variant: "success" as const, duration: 5000, timestamp: Date.now() },
+        { id: "1", message: "Toast 1", variant: "info" as ToastVariant, duration: 5000, timestamp: Date.now() },
+        { id: "2", message: "Toast 2", variant: "success" as ToastVariant, duration: 5000, timestamp: Date.now() },
       ],
       lastToast: null,
     };
-
     const action = { type: "DISMISS" as const, payload: "1" };
 
-    if (action.type === "DISMISS") {
-      const newState = {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.payload),
-      };
-      expect(newState.toasts).toHaveLength(1);
-      expect(newState.toasts[0].id).toBe("2");
-    }
+    const newState = toastReducer(state, action);
+
+    expect(newState.toasts).toHaveLength(1);
+    expect(newState.toasts[0].id).toBe("2");
   });
 
   it("should clear all toasts", () => {
+    const state: TestToastState = {
+      toasts: [{ id: "1", message: "Toast", variant: "info" as ToastVariant, duration: 5000, timestamp: Date.now() }],
+      lastToast: { message: "Toast", timestamp: Date.now() },
+    };
     const action = { type: "CLEAR" as const };
 
-    if (action.type === "CLEAR") {
-      const newState = { toasts: [], lastToast: null };
-      expect(newState.toasts).toHaveLength(0);
-    }
+    const newState = toastReducer(state, action);
+
+    expect(newState.toasts).toHaveLength(0);
+    expect(newState.lastToast).toBeNull();
   });
 
   it("should limit toasts to max visible", () => {
-    const maxVisible = 3;
-    const toasts = [
-      { id: "1", message: "Toast 1", variant: "info" as const, duration: 5000, timestamp: Date.now() },
-      { id: "2", message: "Toast 2", variant: "info" as const, duration: 5000, timestamp: Date.now() },
-      { id: "3", message: "Toast 3", variant: "info" as const, duration: 5000, timestamp: Date.now() },
-      { id: "4", message: "Toast 4", variant: "info" as const, duration: 5000, timestamp: Date.now() },
-      { id: "5", message: "Toast 5", variant: "info" as const, duration: 5000, timestamp: Date.now() },
-    ];
+    const initialState: TestToastState = { toasts: [], lastToast: null };
+    const now = Date.now();
 
-    const limitedToasts = toasts.slice(-maxVisible);
-    expect(limitedToasts).toHaveLength(3);
-    expect(limitedToasts[0].id).toBe("3");
+    let state = initialState;
+    for (let i = 1; i <= 5; i++) {
+      const action = {
+        type: "ADD" as const,
+        payload: { id: String(i), message: `Toast ${i}`, variant: "info" as ToastVariant, duration: 5000, timestamp: now + i },
+      };
+      state = toastReducer(state, action);
+    }
+
+    expect(state.toasts).toHaveLength(TOAST_CONFIG.maxVisible);
+    expect(state.toasts[0]?.id).toBe("3");
   });
 
-  it("should deduplicate within window", () => {
-    const dedupWindow = 2000;
+  it("should deduplicate within window when message matches", () => {
     const now = Date.now();
-    const lastToast = { message: "Same message", timestamp: now - 1000 };
+    const state: TestToastState = {
+      toasts: [{ id: "1", message: "Same message", variant: "info" as ToastVariant, duration: 5000, timestamp: now - 1000 }],
+      lastToast: { message: "Same message", timestamp: now - 1000 },
+    };
+    const action = {
+      type: "ADD" as const,
+      payload: { id: "2", message: "Same message", variant: "info" as ToastVariant, duration: 5000, timestamp: now },
+    };
 
-    const shouldDeduplicate = lastToast && now - lastToast.timestamp < dedupWindow;
-    expect(shouldDeduplicate).toBe(true);
+    const newState = toastReducer(state, action);
+
+    // Should not add duplicate
+    expect(newState.toasts).toHaveLength(1);
+    expect(newState.toasts[0]?.id).toBe("1");
   });
 
-  it("should allow different messages", () => {
-    const dedupWindow = 2000;
+  it("should allow different messages within window", () => {
     const now = Date.now();
-    const lastToast = { message: "Message 1", timestamp: now - 1000 };
+    const state: TestToastState = {
+      toasts: [{ id: "1", message: "Message 1", variant: "info" as ToastVariant, duration: 5000, timestamp: now - 1000 }],
+      lastToast: { message: "Message 1", timestamp: now - 1000 },
+    };
+    const action = {
+      type: "ADD" as const,
+      payload: { id: "2", message: "Message 2", variant: "info" as ToastVariant, duration: 5000, timestamp: now },
+    };
 
-    const shouldDeduplicate = lastToast && lastToast.message === "Message 2" && now - lastToast.timestamp < dedupWindow;
-    expect(shouldDeduplicate).toBe(false);
+    const newState = toastReducer(state, action);
+
+    // Should add different message
+    expect(newState.toasts).toHaveLength(2);
+    expect(newState.toasts[1]?.message).toBe("Message 2");
+  });
+
+  it("should allow same message outside dedup window", () => {
+    const now = Date.now();
+    const state: TestToastState = {
+      toasts: [{ id: "1", message: "Same message", variant: "info" as ToastVariant, duration: 5000, timestamp: now - 3000 }],
+      lastToast: { message: "Same message", timestamp: now - 3000 },
+    };
+    const action = {
+      type: "ADD" as const,
+      payload: { id: "2", message: "Same message", variant: "info" as ToastVariant, duration: 5000, timestamp: now },
+    };
+
+    const newState = toastReducer(state, action);
+
+    // Should add since outside dedup window
+    expect(newState.toasts).toHaveLength(2);
   });
 });
 
 describe("toast configuration", () => {
   it("should have correct default duration", () => {
-    const DEFAULT_DURATION = 5000;
-    expect(DEFAULT_DURATION).toBe(5000);
+    expect(TOAST_CONFIG.defaultDuration).toBe(5000);
   });
 
   it("should have correct dedup window", () => {
-    const DEDUP_WINDOW = 2000;
-    expect(DEDUP_WINDOW).toBe(2000);
+    expect(TOAST_CONFIG.dedupWindow).toBe(2000);
   });
 
   it("should have correct max visible", () => {
-    const MAX_VISIBLE = 3;
-    expect(MAX_VISIBLE).toBe(3);
+    expect(TOAST_CONFIG.maxVisible).toBe(3);
   });
 });
 
 describe("toast variants", () => {
   it("should accept info variant", () => {
-    const variant = "info";
-    expect(variant).toBe("info");
+    const toast: Toast = {
+      id: "1",
+      message: "Test",
+      variant: "info",
+      duration: 5000,
+      timestamp: Date.now(),
+    };
+    expect(toast.variant).toBe("info");
   });
 
   it("should accept success variant", () => {
-    const variant = "success";
-    expect(variant).toBe("success");
+    const toast: Toast = {
+      id: "1",
+      message: "Test",
+      variant: "success",
+      duration: 5000,
+      timestamp: Date.now(),
+    };
+    expect(toast.variant).toBe("success");
   });
 
   it("should accept error variant", () => {
-    const variant = "error";
-    expect(variant).toBe("error");
+    const toast: Toast = {
+      id: "1",
+      message: "Test",
+      variant: "error",
+      duration: 5000,
+      timestamp: Date.now(),
+    };
+    expect(toast.variant).toBe("error");
   });
 });
 
 describe("toast id generation", () => {
   it("should generate unique ids", () => {
-    const generateId = () => crypto.randomUUID();
-    const id1 = generateId();
-    const id2 = generateId();
-    expect(id1).not.toBe(id2);
+    const ids = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      ids.add(crypto.randomUUID());
+    }
+    expect(ids.size).toBe(100);
   });
 
   it("should generate string ids", () => {

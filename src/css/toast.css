@@ -49,17 +49,17 @@
 
 .toast.info {
   background-color: var(--primary, #0066cc);
-  border-left: 3px solid var(--primary, #0066cc);
+  border-left: 3px solid #004d99;
 }
 
 .toast.success {
   background-color: var(--success, #00aa55);
-  border-left: 3px solid var(--success, #00aa55);
+  border-left: 3px solid #008844;
 }
 
 .toast.error {
   background-color: var(--error, #ff4444);
-  border-left: 3px solid var(--error, #ff4444);
+  border-left: 3px solid #cc2222;
 }
 
 .toast-icon {

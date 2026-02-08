@@ -1,21 +1,26 @@
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { injected } from "wagmi/connectors";
 import { ICONS } from "./iconography.tsx";
 import { PoolDisplay } from "./pool-display.tsx";
 import { BaseError } from "viem";
-import { useStatusMessage } from "../context/status-message.tsx";
+import { useStatusMessageState, useStatusMessageDispatch } from "../context/status-message.tsx";
 import { useToast } from "../ui/toast";
 import { ConnectWalletButton } from "./connect-wallet.tsx";
 import { supportedChains } from "../wallet/config.ts";
-import { useStatusMessageState } from "../context/status-message.tsx";
 
 const LogoSpan = () => <span id="header-logo-wrapper">{ICONS.DAO_LOGO}</span>;
 
 export function DashboardPage() {
   const { isConnected } = useAppKitAccount();
   const { chainId } = useAppKitNetwork();
+  const { address, chain, status } = useAccount();
+  const { connect } = useConnect();
+  const { disconnect } = useDisconnect();
   const { successMessage, errorMessage } = useStatusMessageState();
-
-  const { successMessage, errorMessage, setErrorMessage, clearMessages } = useStatusMessage();
+  const dispatch = useStatusMessageDispatch();
+  const setErrorMessage = (message: string) => dispatch({ type: "setError", message });
+  const clearMessages = () => dispatch({ type: "clear" });
   const { toast } = useToast();
 
   const isWalletInstalled = typeof window !== "undefined" && !!(window as { ethereum?: unknown }).ethereum;
@@ -46,7 +51,7 @@ export function DashboardPage() {
         ) : (
           <button
             className="button-with-icon"
-            disabled={!isWalletInstalled || status === "pending"}
+            disabled={!isWalletInstalled || status === "connecting"}
             onClick={() =>
               connect(
                 { connector: injected() },
@@ -62,10 +67,9 @@ export function DashboardPage() {
             }
           >
             {!isWalletInstalled ? ICONS.WARNING : ICONS.CONNECT}
-            <span>{status === "pending" ? "Connecting..." : !isWalletInstalled ? "Requires Wallet Extension" : "Connect Wallet"}</span>
+            <span>{status === "connecting" ? "Connecting..." : !isWalletInstalled ? "Requires Wallet Extension" : "Connect Wallet"}</span>
           </button>
         )}
-        <ConnectWalletButton />
       </section>
 
       {/* Status Displays */}
